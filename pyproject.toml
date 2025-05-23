@@ -6,14 +6,21 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "cmd2>=2.5.3",
+    "cryptography>=43.0.3",
     "google-cloud-storage>=2.18.2",
+    "h2tinker>=0.2",
     "inflect>=7.4.0",
     "ipykernel>=6.29.5",
+    "matplotlib>=3.9.2",
+    "networkx>=3.4.2",
     "pandas>=2.2.3",
     "playwright>=1.48.0",
+    "prefect>=3.1.9",
     "prompt-toolkit>=3.0.48",
     "pydantic>=2.9.2",
+    "pyx>=0.16",
     "rich>=13.9.4",
+    "scapy>=2.6.1",
     "sqlalchemy>=2.0.35",
     "ulid>=1.1",
 ]
