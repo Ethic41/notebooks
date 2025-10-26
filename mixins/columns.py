@@ -43,13 +43,6 @@ class BaseMixin:
     uuid: Mapped[str] = mapped_column(
         String(length=50), primary_key=True, default=get_uuid
     )
-    date: Mapped[dt | None] = mapped_column(
-        Date,
-        index=True,
-        default=date.today,
-        nullable=True,
-        server_default=func.current_date(),
-    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime, index=True, server_default=func.now(), nullable=False
     )

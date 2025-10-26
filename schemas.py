@@ -10,6 +10,7 @@
 from pydantic import (
     BaseModel,
     ConfigDict,
+    EmailStr,
     computed_field,
 )
 from mixins.schemas import (
@@ -20,7 +21,13 @@ from mixins.schemas import (
     BaseModelOut,
     PagedResult,
 )
-from utils.custom_validators import UpStr
+from utils.custom_validators import CapStr, UpStr
+from faker import Faker
+
+
+# ========[ Fake ]========
+
+fake = Faker()
 
 
 # ====================[ Faculty ]====================
@@ -155,3 +162,16 @@ class DepartmentList(PagedResult):
 
 class DepartmentPublicList(PagedResult):
     data: list[DepartmentPublic]
+
+
+class UserCreate(BaseModel):
+    email: EmailStr
+    firstname: CapStr
+    lastname: CapStr
+    middlename: CapStr | None = None
+    phone: str
+
+    @computed_field
+    @property
+    def password_hash(self) -> str:
+        return fake.sha256()

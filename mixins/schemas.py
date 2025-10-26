@@ -6,9 +6,11 @@
 # @Description : Based on bills fastapi template
 
 from enum import Enum
+from config.database import Base
+from mixins.columns import BaseMixin
 from utils.custom_validators import Money
 from utils.enums import ActionStatus
-from datetime import datetime, date as dt_date
+from datetime import datetime
 from typing import Any, TypeVar, Generic
 from pydantic import BaseModel, EmailStr, ConfigDict, computed_field
 
@@ -16,9 +18,13 @@ from pydantic import BaseModel, EmailStr, ConfigDict, computed_field
 T = TypeVar("T")
 
 
+class _SQLModel(BaseMixin, Base): ...
+
+
+SQLModel = TypeVar("SQLModel", bound=_SQLModel)
+
 class BaseSchemaMixin(BaseModel):
     uuid: str
-    date: dt_date
     created_at: datetime
     last_modified: datetime
 

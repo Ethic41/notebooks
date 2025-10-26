@@ -6,11 +6,21 @@
 # @Link    : link
 # @Version : 1.0.0
 
-
-from sqlalchemy import ForeignKey, String, Boolean, Table, Column
+from sqlalchemy import (
+    ForeignKey,
+    Integer,
+    String,
+    Boolean,
+    Table,
+    Column,
+    ColumnElement,
+)
 from sqlalchemy.orm import relationship, Mapped, mapped_column
+from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.sql import case
 from config.database import Base
 from mixins.columns import BaseModelMixin, BaseMixin, BaseUACMixin
+from typing import cast
 
 
 # Many to Many associations
@@ -59,9 +69,6 @@ class User(BaseMixin, Base):
     firstname: Mapped[str] = mapped_column(String(255))
     lastname: Mapped[str] = mapped_column(String(255))
     middlename: Mapped[str | None] = mapped_column(String(255))
-    fullname: Mapped[str] = mapped_column(
-        String(255), nullable=True, default=None, server_default=None
-    )
     phone: Mapped[str] = mapped_column(String(50), unique=True, nullable=True)
     is_active: Mapped[bool | None] = mapped_column(Boolean, default=True)
     is_admin: Mapped[bool] = mapped_column(
@@ -80,6 +87,25 @@ class User(BaseMixin, Base):
     groups: Mapped[list["Group"]] = relationship(
         "Group", secondary=user_group, uselist=True, lazy="joined"
     )
+
+    @hybrid_property
+    def fullname(self) -> str:  # type: ignore
+        parts = [self.firstname or "", self.middlename or "", self.lastname or ""]
+        return " ".join(part for part in parts if part).strip()
+
+    @fullname.expression
+    def fullname(cls) -> ColumnElement[str]:
+        firstname_col: ColumnElement = cast(ColumnElement[str], cls.firstname)
+        middlename_col: ColumnElement = cast(ColumnElement[str | None], cls.middlename)
+        lastname_col: ColumnElement = cast(ColumnElement[str], cls.lastname)
+
+        return case(
+            (
+                middlename_col.is_not(None),
+                f"{firstname_col} {middlename_col} {lastname_col}",
+            ),
+            else_=(f"{firstname_col} {lastname_col}"),
+        )
 
 
 class Faculty(BaseModelMixin, Base):
@@ -107,4 +133,34 @@ class Department(BaseModelMixin, Base):
         back_populates="departments",
         lazy="joined",
         foreign_keys=[faculty_id],
+    )
+    programmes: Mapped[list["Programme"]] = relationship(
+        "Programme",
+        back_populates="department",
+        lazy="selectin",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+    )
+
+
+class Programme(BaseModelMixin, Base):
+    name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+    department_id: Mapped[str] = mapped_column(
+        String(45), ForeignKey("departments.uuid", ondelete="CASCADE"), nullable=False
+    )
+    faculty_id: Mapped[str] = mapped_column(
+        String(45), ForeignKey("faculties.uuid", ondelete="CASCADE"), nullable=False
+    )
+    code: Mapped[str] = mapped_column(String(8), nullable=True)
+    prefix_code: Mapped[str] = mapped_column(String(8), nullable=True)
+    duration: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    department: Mapped["Department"] = relationship(
+        "Department",
+        back_populates="programmes",
+        lazy="joined",
+        foreign_keys=[department_id],
+    )
+    faculty: Mapped["Faculty"] = relationship(
+        "Faculty", lazy="selectin", foreign_keys=[faculty_id]
     )

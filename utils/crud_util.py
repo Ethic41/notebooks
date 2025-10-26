@@ -7,7 +7,7 @@
 
 
 from decimal import Decimal
-from sqlalchemy import Result, Select, String, cast, event, false, or_, select
+from sqlalchemy import Result, Select, String, cast, event, false, or_, select, delete
 from mixins.commons import DateRange
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.elements import and_
@@ -481,19 +481,18 @@ class CrudUtil:
         delete_conditions: dict[str, Any] = {},
         autocommit: bool = True,
     ) -> DeletionResult:
-        db_model = await self.get_model_or_404(
-            model_to_get=model_to_delete,
-            model_conditions=delete_conditions,
+        conditions: list[Any] = self.__get_conditions(
+            model_to_delete, delete_conditions
         )
         try:
             if autocommit:
-                await self.__delete_and_commit(db_model)
+                await self.__delete_and_commit(model_to_delete, conditions)
                 return DeletionResult(
                     status=ActionStatus.success,
                     message=f"Deleted {model_to_delete.__qualname__} successfully",
                 )
             else:
-                await self.__delete_no_commit(db_model)
+                await self.__delete_no_commit(model_to_delete, conditions)
                 return DeletionResult(
                     status=ActionStatus.success,
                     message=f"Deleted {model_to_delete.__qualname__} successfully",
@@ -736,12 +735,16 @@ class CrudUtil:
 
         await self.db.flush()
 
-    async def __delete_and_commit(self, model_to_delete: Any) -> None:
-        await self.db.delete(model_to_delete)
+    async def __delete_and_commit(
+        self, model_to_delete: Any, conditions: list[Any] = []
+    ) -> None:
+        await self.db.execute(delete(model_to_delete).where(*conditions))
         await self.db.commit()
 
-    async def __delete_no_commit(self, model_to_delete: Any) -> None:
-        await self.db.delete(model_to_delete)
+    async def __delete_no_commit(
+        self, model_to_delete: Any, conditions: list[Any] = []
+    ) -> None:
+        await self.db.execute(delete(model_to_delete).where(*conditions))
         await self.db.flush()
 
     def __remove_invalid_fields(self, model: Any, data: BaseModel) -> dict[str, Any]:
